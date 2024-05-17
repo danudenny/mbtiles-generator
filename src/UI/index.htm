@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Map Tiles Downloader</title>
+        <meta charset="utf-8" />
+        <meta
+            name="viewport"
+            content="initial-scale=1,maximum-scale=1,user-scalable=no"
+        />
+
+        <!-- TODO replace jquery with react -->
+        <script src="jquery.min.js"></script>
+
+        <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.js"></script>
+        <link
+            href="https://api.tiles.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.css"
+            rel="stylesheet"
+        />
+
+        <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v2.3.0/mapbox-gl-geocoder.min.js"></script>
+        <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.0.9/mapbox-gl-draw.js"></script>
+        <script src="mapbox-gl-draw-rectangle-mode.min.js"></script>
+        <link
+            rel="stylesheet"
+            href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.0.9/mapbox-gl-draw.css"
+            type="text/css"
+        />
+
+        <script src="https://rawgit.com/kimmobrunfeldt/progressbar.js/1.0.0/dist/progressbar.js"></script>
+
+        <script src="async.min.js"></script>
+        <script src="turf.min.js"></script>
+
+        <link
+            href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,600,600i,700,700i"
+            rel="stylesheet"
+        />
+        <script src="materialize/js/materialize.min.js"></script>
+        <link
+            href="materialize/css/materialize.min.css"
+            rel="stylesheet"
+            type="text/css"
+        />
+
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+            integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"
+        />
+
+        <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/fontawesome.min.js"
+            integrity="sha512-1M9vud0lqoXACA9QaA8IY8k1VR2dMJ2Qmqzt9pN2AH7eQHWpNsxBpaayV0kKkUsF7FLVQ2sA2SSc8w5VOm7/mg=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"
+        ></script>
+
+        <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"
+            integrity="sha512-VEd+nq25CkR676O+pLBnDW09R7VQX9Mdiij052gVCp5yVH3jGtH70Ho/UUv4mJDsEdTvqRCFZg0NKGiojGnUCw=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"
+        ></script>
+
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css"
+            integrity="sha512-vKMx8UnXk60zUwyUnUPM3HbQo8QfmNx7+ltw8Pm5zLusl1XIfwcxo8DbWCqMGKaWeNxWA8yrx5v3SaVpMvR3CA=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"
+        />
+
+        <script src="main.js"></script>
+        <link href="fonts/fonts.css" rel="stylesheet" type="text/css" />
+        <link href="style.css" rel="stylesheet" type="text/css" />
+    </head>
+    <body>
+        <div id="max-height">
+            <div id="map-view"></div>
+        </div>
+
+        <div class="sidebar" id="main-sidebar">
+            <div class="step-number">1</div>
+            <div class="step-title">Search an Area</div>
+
+            <form id="search-form" class="sidebar-section row">
+                <div class="input-field col s12">
+                    <input id="location-box" type="text" value="Indonesia" />
+                    <label for="location-box">Enter a location</label>
+                </div>
+            </form>
+
+            <div class="step-number">2</div>
+            <div class="step-title">Select a Region</div>
+
+            <div class="center-align sidebar-section">
+                <div>
+                    <button
+                        class="waves-effect waves-light z-depth-0 btn-small orange darken-3"
+                        id="current-view-button"
+                    >
+                        <i class="fa-solid fa-globe"></i>
+                        Upload Geojson
+                    </button>
+                    <input
+                        type="file"
+                        id="file-input-geojson"
+                        accept=".geojson"
+                        style="display: none"
+                    />
+                </div>
+                <p>
+                    <button
+                        class="waves-effect waves-light z-depth-0 btn-small orange darken-3"
+                        id="rectangle-draw-button"
+                    >
+                        <i class="fa-solid fa-compass-drafting"></i>
+                        Draw rectangle
+                    </button>
+                </p>
+                <div>
+                    <button
+                        class="waves-effect waves-light z-depth-0 btn-small red darken-3"
+                        id="clear-map-button"
+                    >
+                        <i class="fa-regular fa-circle-xmark"></i>
+                        Clear Map
+                    </button>
+                </div>
+            </div>
+
+            <div class="step-number">3</div>
+            <div class="step-title">Configure</div>
+
+            <div class="sidebar-section">
+                <div class="row">
+                    <div class="input-field col s6">
+                        <input id="zoom-from-box" type="text" value="14" />
+                        <label for="zoom-from-box" class="active"
+                            >Zoom from:</label
+                        >
+                    </div>
+                    <div class="input-field col s6">
+                        <input id="zoom-to-box" type="text" value="14" />
+                        <label for="zoom-to-box" class="active">Zoom to:</label>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="input-field col s10">
+                        <input
+                            id="source-box"
+                            type="text"
+                            value="http://ecn.t0.tiles.virtualearth.net/tiles/a{quad}.jpeg?g=129&mkt=en&stl=H"
+                        />
+                        <label for="source-box">Map Tile Source</label>
+                    </div>
+                    <div class="input-field col s2">
+                        <a
+                            class="waves-effect waves-light btn-small blue-grey lighten-2 z-depth-0 dropdown-trigger"
+                            id="source-select"
+                            href="#"
+                            data-target="sources"
+                            ><i class="fa-solid fa-angle-down"></i
+                        ></a>
+
+                        <ul id="sources" class="dropdown-content"></ul>
+                    </div>
+                </div>
+
+                <div class="center-align">
+                    <button
+                        class="waves-effect waves-light z-depth-0 btn-small green darken-3"
+                        id="grid-preview-button"
+                    >
+                        <i class="fa-solid fa-table-cells-large"></i>
+                        Preview Grid
+                    </button>
+                </div>
+            </div>
+
+            <div class="step-number">4</div>
+            <div class="step-title">
+                <a href="javascript:void(0)" id="more-options-toggle"
+                    >More Options <i class="fa-solid fa-plus"></i
+                ></a>
+            </div>
+
+            <div
+                style="display: none"
+                id="more-options"
+                class="sidebar-section row"
+            >
+                <div class="input-field col s12">
+                    <select id="output-scale" type="text">
+                        <option value="1">1x</option>
+                        <option value="2">2x</option>
+                    </select>
+                    <label for="output-scale">Output scale</label>
+                </div>
+
+                <div class="input-field col s12">
+                    <input
+                        id="output-directory-box"
+                        type="text"
+                        value="{timestamp}"
+                    />
+                    <label for="output-directory-box">Output directory</label>
+                </div>
+
+                <div class="input-field col s12">
+                    <select id="output-type" type="text">
+                        <option value="mbtiles">Mbtiles</option>
+                        <option value="directory">Directory</option>
+                        <!-- <option value="repo">Repo</option> -->
+                    </select>
+                    <label for="output-type">Output type</label>
+                </div>
+
+                <div class="input-field col s12">
+                    <input
+                        id="output-file-box"
+                        type="text"
+                        value="{z}/{x}/{y}.png"
+                    />
+                    <label for="output-file-box">Output file</label>
+                </div>
+
+                <div class="input-field col s12">
+                    <select id="save-to" type="text">
+                        <option value="s3">S3 Bucket</option>
+                        <option value="local">Local</option>
+                    </select>
+                    <label for="output-type">Save To</label>
+                </div>
+
+                <div class="input-field col s12">
+                    <input id="parallel-threads-box" type="text" value="4" />
+                    <label for="parallel-threads-box">Parallel downloads</label>
+                </div>
+            </div>
+
+            <button
+                class="waves-effect waves-light z-depth-0 btn-large cyan darken-2 bottom-button"
+                id="download-button"
+            >
+                <i class="fa-solid fa-download"></i>
+                Download
+            </button>
+        </div>
+
+        <div class="sidebar" id="download-sidebar" style="display: none">
+            <div class="step-number">5</div>
+            <div class="step-title">
+                <i class="fa-solid fa-file-export"></i>Downloading tiles
+            </div>
+            <div class="hints sidebar-section">
+                <i class="fa-solid fa-hourglass-start"></i>Please wait...
+            </div>
+
+            <div class="sidebar-section">
+                <div id="progress-radial" class=""></div>
+
+                <p id="progress-subtitle" class=""></p>
+
+                <p class="tile-strip"></p>
+            </div>
+
+            <textarea id="log-view" class="sidebar-section"></textarea>
+
+            <button
+                class="waves-effect waves-light z-depth-0 btn-large red lighten-5 bottom-button"
+                id="stop-button"
+            >
+                <i class="fa-solid fa-ban"></i>
+                Stop
+            </button>
+        </div>
+    </body>
+</html>
